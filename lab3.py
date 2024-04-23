@@ -43,20 +43,6 @@ model.load_state_dict(state_dict)
 # quantization
 model.half()  # convert all the model parameters to 16 bits half precision
 
-testloader = testloader_full
-quantized_inputs = []
-quantized_labels = []
-for inputs, labels in testloader:
-    print(inputs, labels)
-    # Convert inputs to half precision
-    inputs = inputs.half()
-    # Append quantized inputs and labels to the lists
-    quantized_inputs.append(inputs)
-    quantized_labels.append(labels)
-
-dataset=list(zip(quantized_inputs, quantized_labels))
-testloader_quantized = DataLoader(dataset, batch_size)
-
 print('Inference')
 
 # If you use this model for inference (= no further training), you need to set it into eval mode
@@ -70,8 +56,8 @@ correct = 0
 total = 0
 
 with torch.no_grad():
-    for inputs, labels in testloader_quantized :  # You can change to testloader_subset if needed
-        inputs, labels = inputs.to(device), labels.to(device)
+    for inputs, labels in testloader_full:  # You can change to testloader_subset if needed
+        inputs, labels = inputs.half().to(device), labels.half().to(device)
         outputs = model(inputs)
         _, predicted = outputs.max(1)
         total += labels.size(0)
