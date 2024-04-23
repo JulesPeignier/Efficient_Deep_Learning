@@ -45,3 +45,11 @@ def dataloader(batch_size=32, train_val_split=0.8):
     testloader_full = DataLoader(c10test, batch_size)
 
     return trainloader_full, valloader_full, testloader_full
+
+def dataloader2(batch_size=32):
+
+    # Create data loaders for training, validation, and test sets
+    trainloader = DataLoader(c10train, batch_size, shuffle=True)
+    testloader = DataLoader(c10test, batch_size)
+
+    return trainloader, testloader
