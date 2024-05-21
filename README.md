@@ -1,1 +1,1 @@
-# Efficeint_Deep_Learning
+# Efficient_Deep_Learning
