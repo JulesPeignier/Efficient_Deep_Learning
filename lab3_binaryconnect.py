@@ -23,7 +23,7 @@ import os
 from inference import inference
 
 batch_size = 32
-epochs = 100
+epochs = 50
 model_path = os.path.join('model', model_name()+'.pth')
 print('Model path', model_path)
 
@@ -85,10 +85,12 @@ for epoch in range(epochs):
         outputs = mymodelbc.model(inputs)
         loss = criterion(outputs, labels)
 
+
+        loss.backward()
+        
         mymodelbc.restore() ###  This reloads the full precision weights
         # parameters update on full precision weight
 
-        loss.backward()
         optimizer.step()
 
         ### After backprop

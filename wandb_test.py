@@ -11,7 +11,7 @@ from data_prep import dataloader
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-import vgg
+from resnet import ResNet18
 from utils import progress_bar
 from tools import *
 from train import train
@@ -20,7 +20,7 @@ from inference import inference
 
 ### Preprocessing
 
-batch_sizes = [16, 64, 128]
+batch_sizes = [32]
 # batch_sizes = [4, 8]
 
 for batch_size in batch_sizes:
@@ -49,14 +49,14 @@ for batch_size in batch_sizes:
         ### Training
 
         # Hyperparameters
-        nb_epochs = 100
+        nb_epochs = 2
 
         # Device configurationcd
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         if torch.cuda.is_available():
             print('Utilisation du GPU')
 
-        model = vgg.VGG('VGG11')
+        model = ResNet18()
         criterion = nn.CrossEntropyLoss()
         optimizer = optimizer_class(model.parameters(), **optimizer_params)
         model = model.to(device)
