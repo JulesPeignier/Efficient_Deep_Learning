@@ -10,7 +10,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-
 class BasicBlock(nn.Module):
     expansion = 1
 
@@ -101,31 +100,17 @@ class ResNet(nn.Module):
         out = F.avg_pool2d(out, 4)
         out = out.view(out.size(0), -1)
         out = self.linear(out)
-        return out
-
+        return out 
 
 def ResNet18():
+    # nb parameters: 11 173 962
     return ResNet(BasicBlock, [2, 2, 2, 2])
-
-
-def ResNet34():
-    return ResNet(BasicBlock, [3, 4, 6, 3])
-
-
-def ResNet50():
-    return ResNet(Bottleneck, [3, 4, 6, 3])
-
-
-def ResNet101():
-    return ResNet(Bottleneck, [3, 4, 23, 3])
-
-
-def ResNet152():
-    return ResNet(Bottleneck, [3, 8, 36, 3])
-
 
 def test():
     net = ResNet18()
+    # Instantiate the TinyResNet model and check the number of parameters
+    total_params = sum(p.numel() for p in net.parameters() if p.requires_grad)
+    print(f'Total parameters in ResNet18: {total_params}')
     y = net(torch.randn(1, 3, 32, 32))
     print(y.size())
 

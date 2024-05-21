@@ -2,16 +2,16 @@ import os
 import torch
 import torch.nn as nn
 import resnet
+from tiny_resnet import TinyResNet18
 from tools import count_parameters
 
-our_quant=32
+our_quant=16
 quant_factors={1:32,8:4,16:2,32:1}
 quant_factor= quant_factors[our_quant]
-sparsity=0
+sparsity=0.75
 
-
-model = resnet.ResNet18()
-print('nb parameters:', count_parameters(model))
+# model = resnet.ResNet18()
+# print('nb parameters:', count_parameters(model))
 
 def count_conv2d(m, x, y):
     x = x[0] # remove tuple
@@ -131,12 +131,14 @@ def profile(model, input_size, custom_ops = {}):
 def main():
     # Resnet18 - Reference for CIFAR 10
     ref_params = 5586981
+    #ref_params = 11173962
     ref_flops  = 834362880
     # WideResnet-28-10 - Reference for CIFAR 100
     # ref_params = 36500000
     # ref_flops  = 10490000000
 
     model = resnet.ResNet18()
+    #model = TinyResNet18()
     print(model)
     flops, params = profile(model, (1,3,32,32))
     flops, params = flops.item(), params.item()

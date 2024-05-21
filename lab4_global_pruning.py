@@ -1,11 +1,11 @@
 import random
-from inference import inference
 from torchvision.datasets import CIFAR10
 import numpy as np 
 from torch.utils.data.dataloader import DataLoader
 from data_prep import dataloader2
 import torch.optim as optim
 from resnet import ResNet18
+from tiny_resnet import TinyResNet18
 from utils import progress_bar
 from tools import *
 import os
@@ -16,13 +16,13 @@ from torch import nn
 import torch.nn.utils.prune as prune
 import torch.nn.functional as F
 
-### Global Pruning, no retrain
+### Layer Pruning, no retrain
 
 # Pruning ratio
 amount = 0.5
 
 batch_size = 32
-epochs = 100
+epochs = 150
 model_path = os.path.join('model', model_name()+'.pth')
 print('Model path', model_path)
 
@@ -36,11 +36,12 @@ if torch.cuda.is_available():
 
 
 # Define the model, let's say it is called "mymodel"
-architecture_name='ResNet18'
-mymodel = ResNet18().to(device)
+architecture_name='TinyResNet18' # architecture_name='ResNet18'
+mymodel = TinyResNet18().to(device) # mymodel = ResNet18().to(device)
+
 optimizer = optim.SGD(mymodel.parameters(), lr=0.01, momentum=0.9)
 # Initialize the scheduler
-scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min')
+scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min') # scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
 criterion = nn.CrossEntropyLoss()
 
 val_accuracies = []
@@ -100,6 +101,7 @@ for epoch in range(epochs):
     total_val = 0
 
     with torch.no_grad():
+        # maybe eval mode has to be added here ??
         for inputs, labels in testloader:
             inputs, labels = inputs.to(device), labels.to(device)
 
@@ -117,7 +119,7 @@ for epoch in range(epochs):
         print('Val Loss: %.3f | Val Acc: %.3f%% (%d/%d)'
                 % (val_loss / len(testloader), accuracy_val, correct_val, total_val))
         
-        # Save the model if validation loss is minimized
+        # Save the model if new best accuracy
         if  accuracy_val > best_val_acc:
             print('new best val accuracy:', accuracy_val)
             best_val_acc = accuracy_val
@@ -144,14 +146,14 @@ print('Pruning after training')
 
 for idx, m in enumerate(mymodel.modules()): #  iterator over all modules in the network
     if hasattr(m, 'weight'):
-        print(idx, '->', m)
+        # print(idx, '->', m)
         prune.l1_unstructured(m, name="weight", amount=amount)
 
 print('Inference')
 mymodel.eval()
 
 # Move the model to the same device as the inputs
-mymodel = model.to(device)
+mymodel = mymodel.to(device)
 
 # Iterate through the test data loader
 correct = 0

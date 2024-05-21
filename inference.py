@@ -3,59 +3,85 @@ import numpy as np
 import torchvision.transforms as transforms
 import torch 
 from torch.utils.data.dataloader import DataLoader
-from data_prep import dataloader
+from data_prep import dataloader2
+from resnet import ResNet18
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-import vgg
 from utils import progress_bar
 from tools import *
-from train import train
 import os
-import wandb
 
-def inference(device, model_path, testloader, architecture_name='VGG11'):
-    
-    print('Loading model')
+def model_inference(device, model, testloader, quantize=None):
 
-    # # We load the dictionary
-    # loaded_cpt = torch.load(model_path)
+    if isinstance(model, str):  # If model is a path to a state dictionary file
+        # Load the model from the provided path
+        print('Loading model')
+        # Load dict
+        state_dict = torch.load(model)
 
-    # # Fetch the hyperparam value
-    # hparam_bestvalue = loaded_cpt['hyperparam']
+        # Define the model 
+        model = ResNet18()
 
-    # Load dict
-    state_dict = torch.load(model_path)
-
-    # Define the model 
-    model = vgg.VGG(architecture_name)
-
-    # Finally we can load the state_dict in order to load the trained parameters 
-    model.load_state_dict(state_dict)
-
-    print('Inference')
+        # Finally we can load the state_dict in order to load the trained parameters 
+        model.load_state_dict(state_dict)
 
     # If you use this model for inference (= no further training), you need to set it into eval mode
     model.eval()
-
     # Move the model to the same device as the inputs
     model = model.to(device)
 
-    # Iterate through the test data loader
-    correct = 0
-    total = 0
+    if quantize == 'Half':
+        print('Half quantization')
+        # quantization
+        model.half()  # convert all the model parameters to 16 bits half precision
+        print('Inference')
+        # Iterate through the test data loader
+        correct = 0
+        total = 0
 
-    with torch.no_grad():
-        for inputs, labels in testloader:  # You can change to testloader_subset if needed
-            inputs, labels = inputs.to(device), labels.to(device)
-            outputs = model(inputs)
-            _, predicted = outputs.max(1)
-            total += labels.size(0)
-            correct += predicted.eq(labels).sum().item()
+        with torch.no_grad():
+            for inputs, labels in testloader:  # You can change to testloader_subset if needed
+                inputs, labels = inputs.half().to(device), labels.half().to(device)
+                outputs = model(inputs)
+                _, predicted = outputs.max(1)
+                total += labels.size(0)
+                correct += predicted.eq(labels).sum().item()
+    else:
+        print('No quantization')
+
+        print('Inference')
+
+        # Iterate through the test data loader
+        correct = 0
+        total = 0
+
+        with torch.no_grad():
+            for inputs, labels in testloader:  # You can change to testloader_subset if needed
+                inputs, labels = inputs.to(device), labels.to(device)
+                outputs = model(inputs)
+                _, predicted = outputs.max(1)
+                total += labels.size(0)
+                correct += predicted.eq(labels).sum().item()
 
     # Calculate the accuracy
     accuracy = 100 * correct / total
-    print(f'Accuracy on the test set: {accuracy:.2f}%')
+    print(f'Accuracy on the test set: {accuracy:.2f}%\n')
 
-    wandb.run.summary["Test Accuracy"] = accuracy
+    return accuracy
 
+def test():
+    # Device configurationcd
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    if torch.cuda.is_available():
+        print('Utilisation du GPU')
+
+    batch_size = 32
+    # Create data loaders for training, validation, and test sets
+    trainloader, testloader = dataloader2(batch_size)
+
+    model_path  = 'model/retrained/retrained_pruned_95percent_model_13-05-2024_13h41.pth'
+
+    model_inference(device, model_path, testloader, quantize='Quarter')
+
+# test()
