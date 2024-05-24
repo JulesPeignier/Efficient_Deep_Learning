@@ -5,6 +5,7 @@ import torch
 from torch.utils.data.dataloader import DataLoader
 from data_prep import dataloader2
 from resnet import ResNet18
+from tiny_resnet import TinyResNet18
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
@@ -18,12 +19,8 @@ def model_inference(device, model, testloader, quantize=None):
         # Load the model from the provided path
         print('Loading model')
         # Load dict
-        state_dict = torch.load(model)
-
-        # Define the model 
-        model = ResNet18()
-
-        # Finally we can load the state_dict in order to load the trained parameters 
+        state_dict = torch.load(model) 
+        model = TinyResNet18()
         model.load_state_dict(state_dict)
 
     # If you use this model for inference (= no further training), you need to set it into eval mode
@@ -80,8 +77,8 @@ def test():
     # Create data loaders for training, validation, and test sets
     trainloader, testloader = dataloader2(batch_size)
 
-    model_path  = 'model/retrained/retrained_pruned_95percent_model_13-05-2024_13h41.pth'
+    model_path  = 'model/retrained/retrained_pruned_95percent_model_14-05-2024_22h10.pth'
 
-    model_inference(device, model_path, testloader, quantize='Quarter')
+    model_inference(device, model_path, testloader, quantize='Half')
 
 # test()

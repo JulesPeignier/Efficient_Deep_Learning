@@ -2,13 +2,14 @@ import os
 import torch
 import torch.nn as nn
 import resnet
-from tiny_resnet import TinyResNet18
+from tiny_resnet import *
+from depthwise_separable_conv_resnet import *
 from tools import count_parameters
 
-our_quant=16
+our_quant=32
 quant_factors={1:32,8:4,16:2,32:1}
 quant_factor= quant_factors[our_quant]
-sparsity=0.75
+sparsity=0
 
 # model = resnet.ResNet18()
 # print('nb parameters:', count_parameters(model))
@@ -137,8 +138,8 @@ def main():
     # ref_params = 36500000
     # ref_flops  = 10490000000
 
-    model = resnet.ResNet18()
-    #model = TinyResNet18()
+    #model = resnet.ResNet18()
+    model = DSC_TinyResNet()
     print(model)
     flops, params = profile(model, (1,3,32,32))
     flops, params = flops.item(), params.item()

@@ -6,6 +6,8 @@ from torch.utils.data.dataloader import DataLoader
 from data_prep import dataloader2
 import torch.optim as optim
 from resnet import ResNet18
+from tiny_resnet import TinyResNet18
+from depthwise_separable_conv_resnet import *
 from utils import progress_bar
 from tools import *
 import os
@@ -22,27 +24,23 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 if torch.cuda.is_available():
     print('Utilisation du GPU')
 
-batch_size = 32
 # Create data loaders for training, validation, and test sets
-trainloader, testloader = dataloader2(batch_size)
-
-### Global Pruning
+trainloader, testloader = dataloader2(batch_size=32)
 
 # Load Trained Model
 model_path = 'model/model_13-05-2024_13h41.pth'
 print(f'Loading model: {model_path}')
 state_dict = torch.load(model_path)
-model = ResNet18() 
+model = DSC_MicroResNet() 
 model.load_state_dict(state_dict)
 
-
-# Global Pruning
-amount = 0.95
+batch_size = 32
+amount = 0.33
 pruned_model_path = global_pruning(model, model_path, amount)
 
 # Load Pruned Model
 state_dict = torch.load(pruned_model_path)
-pruned_model = ResNet18() 
+pruned_model = DSC_MicroResNet()
 pruned_model.load_state_dict(state_dict)
 pruned_model.to(device)
 
@@ -53,8 +51,8 @@ test_accuracy_pruned = model_inference(device, pruned_model, testloader)
 ### Retrain Model after Global Pruning
 
 # Training hyperparameters
-epochs = 10
-architecture_name = 'ResNet18'
+epochs = 100
+architecture_name = 'DSC_MicroResNet'
 retrained_model_path = os.path.join('model/retrained/', os.path.basename(pruned_model_path).replace('pruned_', 'retrained_pruned_'))
 print(retrained_model_path)
 print('Retraining after pruning')
@@ -79,6 +77,7 @@ wandb.init(
         "dataset": "CIFAR-10",
         "epochs": epochs,
         "batch size": batch_size,
+        "scheduler": scheduler,
         "model": pruned_model_path,
         "pruning ratio": amount
         }
