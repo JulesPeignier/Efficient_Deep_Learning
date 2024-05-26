@@ -200,7 +200,7 @@ def main():
 
     batch_size = 32
     epochs = 1
-    use_mixup = True
+    use_mixup = False
     alpha = 0.4
 
     model_path = os.path.join("model", model_name() + ".pth")
@@ -211,8 +211,8 @@ def main():
         print("Utilisation du GPU")
 
     # Define the model
-    architecture_name = "DSC_MicroResNet"  # architecture_name='ResNet18'
-    mymodel = DSC_MicroResNet().to(device)  # mymodel = ResNet18().to(device)
+    architecture_name = "ResNet18"  # architecture_name='ResNet18'
+    mymodel = ResNet18().to(device)  # mymodel = ResNet18().to(device)
 
     optimizer = optim.SGD(mymodel.parameters(), lr=0.01, momentum=0.9)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, "min", patience=8) 
@@ -244,7 +244,7 @@ def main():
         optimizer,
         scheduler,
         criterion,
-        patience=20,
+        patience=10,
         wandb_log=wandb_log,
         use_mixup=use_mixup,
         alpha=alpha,

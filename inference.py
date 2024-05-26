@@ -5,6 +5,7 @@ import torch
 from torch.utils.data.dataloader import DataLoader
 from data_prep import dataloader2
 from resnet import ResNet18
+from depthwise_separable_conv_resnet import *
 from tiny_resnet import TinyResNet18
 import torch.nn as nn
 import torch.nn.functional as F
@@ -14,14 +15,6 @@ from tools import *
 import os
 
 def model_inference(device, model, testloader, quantize=None):
-
-    if isinstance(model, str):  # If model is a path to a state dictionary file
-        # Load the model from the provided path
-        print('Loading model')
-        # Load dict
-        state_dict = torch.load(model) 
-        model = TinyResNet18()
-        model.load_state_dict(state_dict)
 
     # If you use this model for inference (= no further training), you need to set it into eval mode
     model.eval()
@@ -77,8 +70,14 @@ def test():
     # Create data loaders for training, validation, and test sets
     trainloader, testloader = dataloader2(batch_size)
 
-    model_path  = 'model/retrained/retrained_pruned_95percent_model_14-05-2024_22h10.pth'
+    model_path  = 'model/distillation/retrained_pruned_95percent_dist_e300_14-05-2024_22h10.pth'
+    # Load dict
+    state_dict = torch.load(model_path) 
+    
+    model = DSC_MicroResNet()
+    model.load_state_dict(state_dict)
 
-    model_inference(device, model_path, testloader, quantize='Half')
 
-# test()
+    model_inference(device, model, testloader, quantize=None)
+
+test()

@@ -28,14 +28,14 @@ if torch.cuda.is_available():
 trainloader, testloader = dataloader2(batch_size=32)
 
 # Load Trained Model
-model_path = 'model/model_13-05-2024_13h41.pth'
+model_path = 'model/distillation/retrained_pruned_95percent_dist_e300_14-05-2024_22h10.pth'
 print(f'Loading model: {model_path}')
 state_dict = torch.load(model_path)
 model = DSC_MicroResNet() 
 model.load_state_dict(state_dict)
 
 batch_size = 32
-amount = 0.33
+amount = 0.75
 pruned_model_path = global_pruning(model, model_path, amount)
 
 # Load Pruned Model
@@ -51,7 +51,7 @@ test_accuracy_pruned = model_inference(device, pruned_model, testloader)
 ### Retrain Model after Global Pruning
 
 # Training hyperparameters
-epochs = 100
+epochs = 300
 architecture_name = 'DSC_MicroResNet'
 retrained_model_path = os.path.join('model/retrained/', os.path.basename(pruned_model_path).replace('pruned_', 'retrained_pruned_'))
 print(retrained_model_path)
