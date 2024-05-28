@@ -5,7 +5,7 @@ from torch.utils.data.dataloader import DataLoader
 from data_prep import dataloader2
 import torch.optim as optim
 from resnet import ResNet18
-from tiny_resnet import TinyResNet18
+from tiny_resnet import TinyResNet18, MicroResNet
 from utils import progress_bar
 from tools import *
 import os
@@ -22,7 +22,7 @@ import torch.nn.functional as F
 amount = 0.5
 
 batch_size = 32
-epochs = 150
+epochs = 100
 model_path = os.path.join('model', model_name()+'.pth')
 print('Model path', model_path)
 
@@ -36,8 +36,8 @@ if torch.cuda.is_available():
 
 
 # Define the model, let's say it is called "mymodel"
-architecture_name='TinyResNet18' # architecture_name='ResNet18'
-mymodel = TinyResNet18().to(device) # mymodel = ResNet18().to(device)
+architecture_name='MicroResNet' # architecture_name='ResNet18'
+mymodel = MicroResNet().to(device) # mymodel = ResNet18().to(device)
 
 optimizer = optim.SGD(mymodel.parameters(), lr=0.01, momentum=0.9)
 # Initialize the scheduler
