@@ -11,7 +11,6 @@ from utils import progress_bar
 from tools import *
 import os
 import wandb
-
 import torch
 from torch import nn
 import torch.nn.utils.prune as prune
@@ -47,8 +46,8 @@ def training(
     criterion,
     patience=10,
     wandb_log=True,
-    use_mixup=False, # Added parameter for controlling mixup
-    alpha=1.0,  
+    use_mixup=False,  # Added parameter for controlling mixup
+    alpha=1.0,
 ):
 
     trainloader, testloader = dataloader2(batch_size)
@@ -57,7 +56,7 @@ def training(
     best_val_acc = 0.0  # Track the best validation accuracy
     train_losses = []
     val_losses = []
-    best_val_loss = float('inf') # Early stopping
+    best_val_loss = float("inf")  # Early stopping
     epochs_no_improve = 0
 
     for epoch in range(epochs):
@@ -69,10 +68,12 @@ def training(
 
         for i, (inputs, labels) in enumerate(trainloader):
             inputs, labels = inputs.to(device), labels.to(device)
-            
-            if use_mixup: # if epoch > 30 and use_mixup:
+
+            if use_mixup:  # if epoch > 30 and use_mixup:
                 # Apply mixup
-                inputs, labels_a, labels_b, lam, x, x_perm = mixup_data(inputs, labels, alpha=alpha)
+                inputs, labels_a, labels_b, lam, x, x_perm = mixup_data(
+                    inputs, labels, alpha=alpha
+                )
                 ## Visualize mixup results for the first batch
                 # if i == 0:
                 #     img_grid = inputs[0]
@@ -161,15 +162,14 @@ def training(
         scheduler.step(val_loss / len(testloader))
 
         if wandb_log:
-            # Log metrics to wandb
-            wandb.log(
+            log_to_wandb(
                 {
                     "Accuracy": accuracy_val,
                     "Training loss": train_loss / len(trainloader),
                     "Validation loss": val_loss / len(testloader),
                     "Learning rate": optimizer.param_groups[0]["lr"],
                 },
-                step=epoch,
+                epoch,
             )
 
     best_val_loss = min(val_losses)
@@ -178,30 +178,35 @@ def training(
     best_val_acc_epoch = val_accuracies.index(best_val_acc)
 
     if wandb_log:
-        wandb.run.summary["best_validation_loss"] = best_val_loss
-        wandb.run.summary["best_validation_loss_epoch"] = best_val_loss_epoch
-        wandb.run.summary["best_accuracy"] = best_val_acc
-        wandb.run.summary["best_validation_acc_epoch"] = best_val_acc_epoch
+        try:
+            wandb.run.summary["best_validation_loss"] = best_val_loss
+            wandb.run.summary["best_validation_loss_epoch"] = best_val_loss_epoch
+            wandb.run.summary["best_accuracy"] = best_val_acc
+            wandb.run.summary["best_validation_acc_epoch"] = best_val_acc_epoch
+        except BrokenPipeError:
+            print("W&B logging failed due to BrokenPipeError.")
 
-    return (
-        train_losses,
-        val_losses,
-        best_val_loss,
-        best_val_loss_epoch,
-        val_accuracies,
-        best_val_acc,
-        best_val_acc_epoch,
-    )
+    return {
+        "train_losses": train_losses,
+        "val_losses": val_losses,
+        "best_val_loss": best_val_loss,
+        "best_val_loss_epoch": best_val_loss_epoch,
+        "val_accuracies": val_accuracies,
+        "best_val_acc": best_val_acc,
+        "best_val_acc_epoch": best_val_acc_epoch,
+    }
 
 
 def main():
-    
-    wandb_log = False
+
+    set_seed(444)  # Set your seed value here
+
+    wandb_log = True
 
     batch_size = 32
-    epochs = 1
-    use_mixup = False
-    alpha = 0.4
+    epochs = 300
+    use_mixup = True
+    alpha = 0.2
 
     model_path = os.path.join("model", model_name() + ".pth")
     print("Model path", model_path)
@@ -211,31 +216,28 @@ def main():
         print("Utilisation du GPU")
 
     # Define the model
-    architecture_name = "ResNet18"  # architecture_name='ResNet18'
-    mymodel = ResNet18().to(device)  # mymodel = ResNet18().to(device)
+    architecture_name = "DSC_TinyResNet"  # architecture_name='ResNet18'
+    mymodel = DSC_TinyResNet().to(device)  # mymodel = ResNet18().to(device)
 
     optimizer = optim.SGD(mymodel.parameters(), lr=0.01, momentum=0.9)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, "min", patience=8) 
-    #scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=0.1, steps_per_epoch=1563, epochs=epochs)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, "min", patience=10)
+    # scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr=0.1, steps_per_epoch=1563, epochs=epochs)
     criterion = nn.CrossEntropyLoss()
 
     if wandb_log:
-        wandb.init(
-            # set the wandb project where this run will be logged
-            project="VGG-perso",
-            # track hyperparameters and run metadata
-            config={
-                "initial learning rate": 0.01,  # Log the initial learning rate,
-                "architecture": architecture_name,
-                "dataset": "CIFAR-10",
-                "epochs": epochs,
-                "batch size": batch_size,
-                "Mixup": use_mixup,
-                "scheduler": scheduler,
-                "model": model_path,
-            },
-        )
-    training(
+        config = {
+            "initial learning rate": 0.01,
+            "architecture": architecture_name,
+            "dataset": "CIFAR-10",
+            "epochs": epochs,
+            "batch size": batch_size,
+            "Mixup": use_mixup,
+            "scheduler": scheduler,
+            "model": model_path,
+        }
+        initialize_wandb(config)
+
+    training_results = training(
         mymodel,
         device,
         epochs,
@@ -244,13 +246,22 @@ def main():
         optimizer,
         scheduler,
         criterion,
-        patience=10,
+        patience=20,
         wandb_log=wandb_log,
         use_mixup=use_mixup,
         alpha=alpha,
     )
+
+    path_json = os.path.join("data/json", os.path.basename(model_path).strip('.pth') + '.json')
+    print(f'Training results ave at: {path_json}')
+    save_json(training_results, path_json)
+
     if wandb_log:
-        wandb.finish()
+        try:
+            wandb.finish()
+        except BrokenPipeError:
+            print("W&B logging failed due to BrokenPipeError.")
+
 
 if __name__ == "__main__":
     main()

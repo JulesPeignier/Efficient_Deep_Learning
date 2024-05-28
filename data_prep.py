@@ -17,10 +17,10 @@ normalize_scratch = transforms.Normalize(
 # Here, Data augmentation (RandomCrop and Horizontal Flip) are applied to each batch, differently at each epoch, on the training set data only
 transform_train = transforms.Compose(
     [
-        #transforms.RandomCrop(32, padding=4),
-        #transforms.RandomHorizontalFlip(),
-        #transforms.RandomRotation(15),
-        #transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.1),
+        transforms.RandomCrop(32, padding=4),
+        transforms.RandomHorizontalFlip(),
+        # transforms.RandomRotation(15),
+        # transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.4, hue=0.1),
         transforms.ToTensor(),
         normalize_scratch,
     ]

@@ -6,7 +6,7 @@ from tiny_resnet import *
 from depthwise_separable_conv_resnet import *
 from tools import count_parameters
 
-our_quant=32
+our_quant=16
 quant_factors={1:32,8:4,16:2,32:1}
 quant_factor= quant_factors[our_quant]
 sparsity=0

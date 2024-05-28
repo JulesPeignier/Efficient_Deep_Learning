@@ -70,14 +70,13 @@ def test():
     # Create data loaders for training, validation, and test sets
     trainloader, testloader = dataloader2(batch_size)
 
-    model_path  = 'model/distillation/retrained_pruned_95percent_dist_e300_14-05-2024_22h10.pth'
+    model_path  = "model/model_28-05-2024_00h12.pth"
     # Load dict
     state_dict = torch.load(model_path) 
     
-    model = DSC_MicroResNet()
+    model = DSC_TinyResNet()
     model.load_state_dict(state_dict)
 
 
-    model_inference(device, model, testloader, quantize=None)
+    model_inference(device, model, testloader, quantize='Half')
 
-test()
