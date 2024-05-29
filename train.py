@@ -1,7 +1,3 @@
-import random
-from torchvision.datasets import CIFAR10
-import numpy as np
-from torch.utils.data.dataloader import DataLoader
 from data_prep import dataloader2, mixup_criterion, mixup_data
 import torch.optim as optim
 from resnet import ResNet18
@@ -13,8 +9,6 @@ import os
 import wandb
 import torch
 from torch import nn
-import torch.nn.utils.prune as prune
-import torch.nn.functional as F
 
 
 # import matplotlib.pyplot as plt
@@ -263,5 +257,5 @@ def main():
             print("W&B logging failed due to BrokenPipeError.")
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()

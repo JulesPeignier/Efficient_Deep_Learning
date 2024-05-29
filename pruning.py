@@ -1,34 +1,25 @@
 import torch
 from resnet import ResNet18
+from depthwise_separable_conv_resnet import *
+from inference import *
+from tools import *
 
 import torch.nn as nn
 import os
 import torch
 import torch.nn.utils.prune as prune
 
-def global_pruning(model, model_path, amount):
-    if isinstance(model, str):  # If model is a path to a state dictionary file
-        # Load the model from the provided path
-        print('Loading model before pruning')
-        # Load dict
-        state_dict = torch.load(model_path)
-        # Define the model 
-        model = ResNet18()
-        # Finally we can load the state_dict in order to load the trained parameters 
-        model.load_state_dict(state_dict)
+def global_pruning(model, pruned_model_path, amount):
     
     for name, module in model.named_modules():
         if isinstance(module, nn.Conv2d) or isinstance(module, nn.Linear):
             prune.l1_unstructured(module, name='weight', amount=amount)
             prune.remove(module, 'weight')
 
-    pruned_model_path = os.path.join(os.path.dirname(model_path), 
-                                    'pruned/' + f'pruned_{round(amount * 100)}percent_' + os.path.basename(model_path))
     torch.save(model.state_dict(), pruned_model_path)
     
     print(f"Pruned Model saved at {pruned_model_path}\n")
 
-    return pruned_model_path
 
 
 def compute_sparsity(model):
@@ -73,3 +64,79 @@ def test():
 
     sparsity = compute_sparsity(pruned_model)
     print("Sparsity pruned model:", sparsity, '\n')
+
+
+def try_pruning_ratio():
+
+    set_seed(444)
+
+    amounts = [0.0, 0.1, 0.2, 0.22, 0.24, 0.25, 0.26, 0.28, 0.3]
+    results = []
+
+    # Device configurationcd
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    if torch.cuda.is_available():
+        print('Utilisation du GPU')
+
+    batch_size = 32
+    # Create data loaders for training, validation, and test sets
+    trainloader, testloader = dataloader2(batch_size)
+
+    # model_path  = "model/distillation/dist_dsc_tinyresnet_in_14-05-2024_22h10.pth" #Accuracy on the test set: 91.41%
+    model_path = 'model/retrained/60p_dist_dsc_tinyresnet_in_14-05-2024_22h10.pth' # 90.90%
+    # Load dict
+    state_dict = torch.load(model_path) 
+
+    for amount in amounts:
+
+        print('Pruning with amount', amount)
+    
+        model = DSC_TinyResNet().to(device)
+        model.load_state_dict(state_dict)
+        model.eval()
+        
+        # Pruning
+        if amount > 0:
+            for name, module in model.named_modules():
+                if isinstance(module, nn.Conv2d) or isinstance(module, nn.Linear):
+                    prune.l1_unstructured(module, name='weight', amount=amount)
+                    prune.remove(module, 'weight')
+
+        # Iterate through the test data loader
+        correct = 0
+        total = 0
+
+        with torch.no_grad():
+            for inputs, labels in testloader:  # You can change to testloader_subset if needed
+                inputs, labels = inputs.to(device), labels.to(device)
+                outputs = model(inputs)
+                _, predicted = outputs.max(1)
+                total += labels.size(0)
+                correct += predicted.eq(labels).sum().item()
+
+        # Calculate the accuracy
+        accuracy = 100 * correct / total
+        print(f'Accuracy on the test set: {accuracy:.2f}%\n')
+
+        results.append((amount, accuracy))
+    
+    return results
+
+# print(try_pruning_ratio())
+
+
+def prune_save():
+    set_seed(444)
+    # Device configurationcd
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    if torch.cuda.is_available():
+        print('Utilisation du GPU')
+
+    model_path = 'model/retrained/60p_dist_dsc_tinyresnet_in_14-05-2024_22h10.pth'
+    # Load dict
+    state_dict = torch.load(model_path) 
+    model = DSC_TinyResNet().to(device)
+    model.load_state_dict(state_dict)
+    pruned_model_path = 'model/final/pruned_dist_dsc_tinyresnet_14-05-2024_22h10.pth'
+    amount = 0.25
+    global_pruning(model, pruned_model_path, amount)

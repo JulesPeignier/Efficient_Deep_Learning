@@ -172,7 +172,7 @@ def main():
 
     # Training hyperparameters
     batch_size = 32
-    epochs = 300
+    epochs = 100
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if torch.cuda.is_available():
@@ -187,13 +187,13 @@ def main():
     teacher_model.load_state_dict(torch.load(teacher_model_path)) 
 
     # Create Student model
-    student_architecture_name = 'DSC_MicroResNet'
-    student_model_path = os.path.join('model/distillation/', os.path.basename(teacher_model_path).replace('model_', 'dist_e300_'))
+    student_architecture_name = 'DSC_TinyResNet'
+    student_model_path = os.path.join('model/distillation/', os.path.basename(teacher_model_path).replace('retrained_pruned_95percent_model', 'dist_dsc_tinyresnet_in'))
     print(f'Student model: {student_architecture_name}')
-    student_model = DSC_MicroResNet().to(device)  
+    student_model = DSC_TinyResNet().to(device)  
 
     optimizer = optim.SGD(student_model.parameters(), lr=0.01, momentum=0.9)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, "min", patience=20)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, "min", patience=10)
     criterion = nn.CrossEntropyLoss()
 
     if wandb_log:
@@ -227,7 +227,7 @@ def main():
         criterion,
         distillation_alpha,
         T,
-        patience=300,
+        patience=20,
         wandb_log=wandb_log,
     )
     if wandb_log: 
