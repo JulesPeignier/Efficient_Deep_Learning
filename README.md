@@ -1,6 +1,6 @@
-## Efficient_Deep_Learning
+# Efficient_Deep_Learning
 
-# Training model on CIFAR10
+## Training model on CIFAR10
 
 final model at: 'model/final/pruned_dist_dsc_tinyresnet_14-05-2024_22h10.pth'
 
