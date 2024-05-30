@@ -70,7 +70,8 @@ def test():
     # Create data loaders for training, validation, and test sets
     trainloader, testloader = dataloader2(batch_size)
 
-    model_path  = "model/model_28-05-2024_00h12.pth"
+    # model_path  = "model/distillation/dist_dsc_tinyresnet_in_14-05-2024_22h10.pth" #Accuracy on the test set: 91.41%
+    model_path = 'model/final/pruned_dist_dsc_tinyresnet_14-05-2024_22h10.pth' # 90.90%
     # Load dict
     state_dict = torch.load(model_path) 
     
@@ -80,3 +81,4 @@ def test():
 
     model_inference(device, model, testloader, quantize='Half')
 
+# test()
